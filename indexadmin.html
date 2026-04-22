@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oryx Group - Admin Master Control</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #333; }
+        h2, h3 { color: #4caf50; }
+        input { background: #2c2c2c; border: 1px solid #444; color: white; padding: 10px; margin: 10px 0; width: 100%; border-radius: 6px; box-sizing: border-box; }
+        button { background: #4caf50; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #252525; }
+        th, td { padding: 12px; border: 1px solid #333; text-align: left; font-size: 14px; }
+        th { background: #333; color: #4caf50; }
+        .refresh-btn { background: #2196f3; margin-top: 10px; }
+        .time-text { color: #aaa; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Oryx Group Admin Control</h2>
+        
+        <div class="card">
+            <h3>Set Secret Production Cost</h3>
+            <input type="text" id="orderId" placeholder="Enter Order ID (e.g. PEN-101)">
+            <input type="number" id="costBDT" placeholder="Production Cost in BDT (৳)">
+            <button onclick="saveCost()">Save Secret Cost</button>
+        </div>
+
+        <div class="card">
+            <h3>Partner Activity & Calculation Log</h3>
+            <button class="refresh-btn" onclick="loadActivity()">Refresh Log</button>
+            <table id="activityTable">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Order ID</th>
+                        <th>Currency</th>
+                        <th>Qty</th>
+                        <th>Sale Price</th>
+                        <th>Partner Share</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // গোপন খরচ সেভ করা
+        function saveCost() {
+            let id = document.getElementById('orderId').value;
+            let cost = document.getElementById('costBDT').value;
+            if(id && cost) {
+                localStorage.setItem("cost_" + id, cost);
+                alert("Secret cost saved for " + id);
+            } else {
+                alert("Please enter ID and Cost.");
+            }
+        }
+
+        // ইউজারের অ্যাক্টিভিটি লোড করা
+        function loadActivity() {
+            let tbody = document.querySelector("#activityTable tbody");
+            tbody.innerHTML = "";
+            let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
+            
+            // নতুন ডাটা সবার উপরে দেখানোর জন্য reverse করা হয়েছে
+            log.reverse().forEach(entry => {
+                // যদি কোডে আগে টাইম না থাকে তবে 'N/A' দেখাবে
+                let timeDisplay = entry.time ? entry.time : "Earlier Log";
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="time-text">${timeDisplay}</td>
+                        <td><b>${entry.id}</b></td>
+                        <td>${entry.currency}</td>
+                        <td>${entry.qty}</td>
+                        <td>${entry.price}</td>
+                        <td style="color:#4caf50; font-weight:bold;">${entry.share}</td>
+                    </tr>`;
+            });
+        }
+
+        // পেজ লোড হওয়ার সময় টেবিল আপডেট করা
+        window.onload = loadActivity;
+    </script>
+</body>
+</html>
