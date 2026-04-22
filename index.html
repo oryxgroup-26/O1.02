@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oryx Group - Entrance</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .gate-card { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        .logo { color: #1b5e20; font-size: 32px; font-weight: bold; margin-bottom: 30px; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 15px 0; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; text-decoration: none; }
+        .btn-partner { background: #1b5e20; color: white; }
+        .btn-admin { background: #333; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        
+        /* Modal Style */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 300px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div class="gate-card">
+    <div class="logo">Oryx Group</div>
+    <p style="color: #666; margin-bottom: 25px;">Please select your portal</p>
+    
+    <a href="partner.html" class="btn btn-partner">Partner Portal</a>
+    
+    <button onclick="openAdmin()" class="btn btn-admin">Admin Access</button>
+</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-content">
+        <h3>Admin Login</h3>
+        <input type="password" id="passInput" placeholder="Enter Password">
+        <button onclick="checkPass()" class="btn btn-admin" style="margin: 0;">Login</button>
+        <button onclick="closeAdmin()" style="background:none; border:none; color:red; margin-top:10px; cursor:pointer;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    function openAdmin() {
+        document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    function closeAdmin() {
+        document.getElementById('adminModal').style.display = 'none';
+    }
+
+    function checkPass() {
+        const pass = document.getElementById('passInput').value;
+        if (pass === "Rhsrafi24109") {
+            window.location.href = "indexadmin.html";
+        } else {
+            alert("Incorrect Password! Access Denied.");
+        }
+    }
+</script>
+
+</body>
+</html>
