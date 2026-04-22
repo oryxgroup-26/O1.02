@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oryx Group - Partner Portal</title>
+    <title>Oryx Group - Global Partner Portal</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .card { max-width: 400px; background: #fff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); margin: auto; }
         .logo { color: #1b5e20; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px; }
         label { font-size: 13px; color: #555; font-weight: 600; display: block; margin-top: 10px; }
         select, input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #1b5e20; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: #1b5e20; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #144d1a; }
         #resBox { margin-top: 25px; padding: 20px; background: #e8f5e9; border-radius: 15px; display: none; text-align: center; border: 1px solid #c8e6c9; }
     </style>
 </head>
@@ -19,27 +20,48 @@
 <div class="card">
     <div class="logo">Oryx Group</div>
     
-    <label>Choose Your Local Currency:</label>
+    <label>Choose Your Local Currency (25 Options):</label>
     <select id="curr">
-        <option value="USD">USD ($) - USA</option>
-        <option value="BDT">BDT (৳) - Bangladesh</option>
-        <option value="GHS">GHS (₵) - Ghana</option>
-        <option value="AFN">AFN (؋) - Afghanistan</option>
+        <option value="USD">USD ($) - US Dollar</option>
+        <option value="BDT" selected>BDT (৳) - Bangladeshi Taka</option>
+        <option value="EUR">EUR (€) - Euro</option>
+        <option value="GBP">GBP (£) - British Pound</option>
+        <option value="GHS">GHS (₵) - Ghanaian Cedi</option>
+        <option value="AFN">AFN (؋) - Afghan Afghani</option>
+        <option value="INR">INR (₹) - Indian Rupee</option>
+        <option value="AED">AED (د.إ) - UAE Dirham</option>
+        <option value="SAR">SAR (﷼) - Saudi Riyal</option>
+        <option value="CAD">CAD ($) - Canadian Dollar</option>
+        <option value="AUD">AUD ($) - Australian Dollar</option>
+        <option value="SGD">SGD ($) - Singapore Dollar</option>
+        <option value="MYR">MYR (RM) - Malaysian Ringgit</option>
+        <option value="PKR">PKR (₨) - Pakistani Rupee</option>
+        <option value="NPR">NPR (₨) - Nepalese Rupee</option>
+        <option value="CNY">CNY (¥) - Chinese Yuan</option>
+        <option value="JPY">JPY (¥) - Japanese Yen</option>
+        <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
+        <option value="OMR">OMR (﷼) - Oman Rial</option>
+        <option value="QAR">QAR (﷼) - Qatari Riyal</option>
+        <option value="TRY">TRY (₺) - Turkish Lira</option>
+        <option value="ZAR">ZAR (R) - South African Rand</option>
+        <option value="NGN">NGN (₦) - Nigerian Naira</option>
+        <option value="BHD">BHD (.د.ب) - Bahraini Dinar</option>
+        <option value="RUB">RUB (₽) - Russian Ruble</option>
     </select>
 
     <label>Order ID:</label>
     <input type="text" id="uId" placeholder="e.g. PEN-101">
 
-    <label>Quantity (How many pens?):</label>
-    <input type="number" id="uQty" placeholder="Enter amount">
+    <label>Quantity (Units):</label>
+    <input type="number" id="uQty" placeholder="How many pens?">
 
-    <label>Sale Price (Per Pen in your currency):</label>
-    <input type="number" id="uPrice" step="0.01" placeholder="Price per unit">
+    <label>Sale Price (Per Pen in selected currency):</label>
+    <input type="number" id="uPrice" step="0.01" placeholder="Enter sale price">
 
     <button onclick="calculate()">Calculate My 15% Share</button>
 
     <div id="resBox">
-        <span style="font-size: 14px; color: #666;">Total Estimated Commission:</span>
+        <span style="font-size: 14px; color: #666;">Total Estimated Commission (15%):</span>
         <h2 id="finalAmount" style="color: #2e7d32; margin: 5px 0;"></h2>
     </div>
 </div>
@@ -51,38 +73,49 @@
         let qty = parseInt(document.getElementById('uQty').value);
         let salePrice = parseFloat(document.getElementById('uPrice').value);
         
+        // অ্যাডমিনের সেট করা বিডিটি খরচ কল করা
         let secretCostBDT = localStorage.getItem("cost_" + id);
 
         if(!secretCostBDT || isNaN(qty) || isNaN(salePrice)) {
-            alert("Order ID not found or invalid input!"); return;
+            alert("Order ID not found or invalid input! Make sure Admin has set the cost for this ID."); return;
         }
 
         try {
-            // Live rates API
+            // লাইভ কারেন্সি রেট ফেচ করা (বেস কারেন্সি BDT)
             let res = await fetch(`https://api.exchangerate-api.com/v4/latest/BDT`);
             let rates = await res.json();
             let rate = rates.rates[selectedCurr];
 
+            // ১. বিডিটি খরচকে ইউজারের কারেন্সিতে কনভার্ট করা
             let costInUserCurr = parseFloat(secretCostBDT) * rate;
+            
+            // ২. নিট প্রফিট বের করা (ইউজারের কারেন্সিতে)
             let profit = (salePrice - costInUserCurr) * qty;
+            
+            // ৩. প্রফিটের ওপর ১৫% অংশ বের করা
             let share = profit * 0.15;
-            let finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2});
+            
+            // ৪. ফলাফল প্রদর্শন (কারেন্সি সিম্বল সহ)
+            let finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             document.getElementById('resBox').style.display = 'block';
             document.getElementById('finalAmount').innerText = finalShare;
 
-            // অ্যাডমিনের দেখার জন্য ডাটা সেভ করা
+            // অ্যাডমিনের দেখার জন্য লগ সেভ করা
             let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
             log.push({
                 id: id,
                 currency: selectedCurr,
                 qty: qty,
                 price: salePrice,
-                share: finalShare
+                share: finalShare,
+                time: new Date().toLocaleString()
             });
             localStorage.setItem("activityLog", JSON.stringify(log));
             
-        } catch(e) { alert("Live currency rates failed. Check internet."); }
+        } catch(e) { 
+            alert("Live currency rates failed. Please check your internet connection."); 
+        }
     }
 </script>
 </body>
