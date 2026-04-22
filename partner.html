@@ -68,68 +68,63 @@
     </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
 <script>
+    const firebaseConfig = {
+        databaseURL: "https://oryx-partner-database-default-rtdb.firebaseio.com/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     async function calculate() {
         const id = document.getElementById('uId').value;
         const selectedCurr = document.getElementById('curr').value;
         const qty = parseInt(document.getElementById('uQty').value);
         const salePrice = parseFloat(document.getElementById('uPrice').value);
-        const loading = document.getElementById('loading');
-        const resBox = document.getElementById('resBox');
 
-        // অ্যাডমিনের ডাটা চেক করা (এটি এখন অবজেক্ট আকারে আছে)
-        const storedCost = localStorage.getItem("cost_" + id);
-
-        if(!storedCost || isNaN(qty) || isNaN(salePrice)) {
-            alert("Order ID not found or invalid input! Please check with Admin.");
+        if(!id || isNaN(qty) || isNaN(salePrice)) {
+            alert("সবগুলো তথ্য সঠিকভাবে দিন।");
             return;
         }
 
-        const costData = JSON.parse(storedCost); // {amount: 5, currency: 'USD'}
+        // ক্লাউড থেকে সরাসরি ডাটা চেক করবে
+        database.ref('costs/' + id).once('value').then(async (snapshot) => {
+            if (!snapshot.exists()) {
+                alert("এই Order ID টি ক্লাউডে খুঁজে পাওয়া যায়নি। অ্যাডমিনের সাথে যোগাযোগ করুন।");
+                return;
+            }
 
-        try {
-            loading.style.display = 'block';
-            resBox.style.display = 'none';
-
-            // লাইভ এক্সচেঞ্জ রেট আনা (অ্যাডমিনের সেট করা কারেন্সি থেকে)
-            const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${costData.currency}`);
-            const data = await res.json();
-            const rate = data.rates[selectedCurr];
-
-            // ১. অ্যাডমিনের খরচকে পার্টনারের কারেন্সিতে কনভার্ট করা
-            const costInUserCurr = costData.amount * rate;
+            const costData = snapshot.val();
             
-            // ২. প্রফিট হিসাব করা
-            const profitPerUnit = salePrice - costInUserCurr;
-            const totalProfit = profitPerUnit * qty;
-            
-            // ৩. ১৫% শেয়ার বের করা
-            const share = totalProfit * 0.15;
-            
-            // ৪. ফলাফল দেখানো
-            const finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            
-            loading.style.display = 'none';
-            resBox.style.display = 'block';
-            document.getElementById('finalAmount').innerText = finalShare;
+            try {
+                // লাইভ কারেন্সি কনভার্ট করা
+                const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${costData.currency}`);
+                const data = await res.json();
+                const rate = data.rates[selectedCurr];
 
-            // অ্যাডমিনের প্যানেলে লগ পাঠানো
-            let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
-            log.push({
-                id: id,
-                currency: selectedCurr,
-                qty: qty,
-                price: salePrice,
-                share: finalShare,
-                time: new Date().toLocaleString()
-            });
-            localStorage.setItem("activityLog", JSON.stringify(log));
+                const costInUserCurr = costData.amount * rate;
+                const profit = (salePrice - costInUserCurr) * qty;
+                const share = profit * 0.15;
+                
+                const finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2});
+                
+                document.getElementById('resBox').style.display = 'block';
+                document.getElementById('finalAmount').innerText = finalShare;
 
-        } catch (error) {
-            loading.style.display = 'none';
-            alert("Error: Could not fetch exchange rates. Check your connection.");
-        }
+                // চাইলে পার্টনারের ক্যালকুলেশন হিস্ট্রিও ক্লাউডে সেভ রাখতে পারেন
+                database.ref('activity_logs/').push({
+                    orderId: id,
+                    share: finalShare,
+                    time: new Date().toLocaleString()
+                });
+
+            } catch (e) { 
+                alert("লাইভ কারেন্সি রেট আনতে সমস্যা হচ্ছে। ইন্টারনেট চেক করুন।"); 
+            }
+        });
     }
-</script>
+                    </script>
 </body>
 </html>
