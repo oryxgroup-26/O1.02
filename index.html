@@ -3,69 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oryx Group - Partner Portal</title>
+    <title>Oryx Group - Entrance</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .card { max-width: 400px; background: #fff; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); margin: auto; }
-        .logo { color: #1b5e20; font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px; }
-        label { font-size: 13px; color: #555; font-weight: 600; display: block; margin-top: 10px; }
-        select, input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #1b5e20; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        #resBox { margin-top: 25px; padding: 20px; background: #e8f5e9; border-radius: 15px; display: none; text-align: center; border: 1px solid #c8e6c9; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .gate-card { background: #fff; padding: 40px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        .logo { color: #1b5e20; font-size: 32px; font-weight: bold; margin-bottom: 30px; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 15px 0; border: none; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; text-decoration: none; }
+        .btn-partner { background: #1b5e20; color: white; }
+        .btn-admin { background: #333; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        
+        /* Modal Style */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; width: 300px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-<div class="card">
+<div class="gate-card">
     <div class="logo">Oryx Group</div>
-    <label>Choose Your Local Currency:</label>
-    <select id="curr">
-        <option value="USD">USD ($) - USA</option>
-        <option value="BDT">BDT (৳) - Bangladesh</option>
-        <option value="GHS">GHS (₵) - Ghana</option>
-        <option value="AFN">AFN (؋) - Afghanistan</option>
-    </select>
-    <label>Order ID:</label>
-    <input type="text" id="uId" placeholder="e.g. PEN-101">
-    <label>Quantity (Units):</label>
-    <input type="number" id="uQty" placeholder="Enter amount">
-    <label>Sale Price (Per Pen):</label>
-    <input type="number" id="uPrice" step="0.01" placeholder="Price per unit">
-    <button onclick="calculate()">Calculate My 15% Share</button>
-    <div id="resBox">
-        <span style="font-size: 14px; color: #666;">Total Estimated Commission:</span>
-        <h2 id="finalAmount" style="color: #2e7d32; margin: 5px 0;"></h2>
+    <p style="color: #666; margin-bottom: 25px;">Please select your portal</p>
+    
+    <a href="partner.html" class="btn btn-partner">Partner Portal</a>
+    
+    <button onclick="openAdmin()" class="btn btn-admin">Admin Access</button>
+</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-content">
+        <h3>Admin Login</h3>
+        <input type="password" id="passInput" placeholder="Enter Password">
+        <button onclick="checkPass()" class="btn btn-admin" style="margin: 0;">Login</button>
+        <button onclick="closeAdmin()" style="background:none; border:none; color:red; margin-top:10px; cursor:pointer;">Cancel</button>
     </div>
 </div>
 
 <script>
-    async function calculate() {
-        let id = document.getElementById('uId').value;
-        let selectedCurr = document.getElementById('curr').value;
-        let qty = parseInt(document.getElementById('uQty').value);
-        let salePrice = parseFloat(document.getElementById('uPrice').value);
-        let secretCostBDT = localStorage.getItem("cost_" + id);
+    function openAdmin() {
+        document.getElementById('adminModal').style.display = 'flex';
+    }
 
-        if(!secretCostBDT || isNaN(qty) || isNaN(salePrice)) {
-            alert("Order ID not found! Make sure you set the cost in indexadmin.html first on this device."); return;
+    function closeAdmin() {
+        document.getElementById('adminModal').style.display = 'none';
+    }
+
+    function checkPass() {
+        const pass = document.getElementById('passInput').value;
+        if (pass === "Rhsrafi24109") {
+            window.location.href = "indexadmin.html";
+        } else {
+            alert("Incorrect Password! Access Denied.");
         }
-
-        try {
-            let res = await fetch(`https://api.exchangerate-api.com/v4/latest/BDT`);
-            let rates = await res.json();
-            let rate = rates.rates[selectedCurr];
-            let costInUserCurr = parseFloat(secretCostBDT) * rate;
-            let profit = (salePrice - costInUserCurr) * qty;
-            let share = profit * 0.15;
-            let finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2});
-            document.getElementById('resBox').style.display = 'block';
-            document.getElementById('finalAmount').innerText = finalShare;
-
-            let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
-            log.push({ id: id, currency: selectedCurr, qty: qty, price: salePrice, share: finalShare });
-            localStorage.setItem("activityLog", JSON.stringify(log));
-        } catch(e) { alert("Network error. Please check internet connection."); }
     }
 </script>
+
 </body>
 </html>
