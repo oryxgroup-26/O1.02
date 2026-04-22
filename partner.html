@@ -13,6 +13,7 @@
         button { width: 100%; padding: 15px; background: #1b5e20; color: #fff; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
         button:hover { background: #144d1a; }
         #resBox { margin-top: 25px; padding: 20px; background: #e8f5e9; border-radius: 15px; display: none; text-align: center; border: 1px solid #c8e6c9; }
+        .loading { font-size: 14px; color: #1b5e20; display: none; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
@@ -20,45 +21,46 @@
 <div class="card">
     <div class="logo">Oryx Group</div>
     
-    <label>Choose Your Local Currency (25 Options):</label>
+    <label>Choose Your Local Currency:</label>
     <select id="curr">
         <option value="USD">USD ($) - US Dollar</option>
         <option value="BDT" selected>BDT (৳) - Bangladeshi Taka</option>
         <option value="EUR">EUR (€) - Euro</option>
-        <option value="GBP">GBP (£) - British Pound</option>
         <option value="GHS">GHS (₵) - Ghanaian Cedi</option>
         <option value="AFN">AFN (؋) - Afghan Afghani</option>
         <option value="INR">INR (₹) - Indian Rupee</option>
         <option value="AED">AED (د.إ) - UAE Dirham</option>
         <option value="SAR">SAR (﷼) - Saudi Riyal</option>
+        <option value="GBP">GBP (£) - British Pound</option>
+        <option value="TRY">TRY (₺) - Turkish Lira</option>
         <option value="CAD">CAD ($) - Canadian Dollar</option>
         <option value="AUD">AUD ($) - Australian Dollar</option>
-        <option value="SGD">SGD ($) - Singapore Dollar</option>
         <option value="MYR">MYR (RM) - Malaysian Ringgit</option>
         <option value="PKR">PKR (₨) - Pakistani Rupee</option>
-        <option value="NPR">NPR (₨) - Nepalese Rupee</option>
-        <option value="CNY">CNY (¥) - Chinese Yuan</option>
-        <option value="JPY">JPY (¥) - Japanese Yen</option>
-        <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
         <option value="OMR">OMR (﷼) - Oman Rial</option>
         <option value="QAR">QAR (﷼) - Qatari Riyal</option>
-        <option value="TRY">TRY (₺) - Turkish Lira</option>
+        <option value="SGD">SGD ($) - Singapore Dollar</option>
         <option value="ZAR">ZAR (R) - South African Rand</option>
         <option value="NGN">NGN (₦) - Nigerian Naira</option>
+        <option value="JPY">JPY (¥) - Japanese Yen</option>
+        <option value="CNY">CNY (¥) - Chinese Yuan</option>
+        <option value="KWD">KWD (د.ك) - Kuwaiti Dinar</option>
         <option value="BHD">BHD (.د.ب) - Bahraini Dinar</option>
         <option value="RUB">RUB (₽) - Russian Ruble</option>
+        <option value="NPR">NPR (₨) - Nepalese Rupee</option>
     </select>
 
     <label>Order ID:</label>
     <input type="text" id="uId" placeholder="e.g. PEN-101">
 
     <label>Quantity (Units):</label>
-    <input type="number" id="uQty" placeholder="How many pens?">
+    <input type="number" id="uQty" placeholder="How many units?">
 
-    <label>Sale Price (Per Pen in selected currency):</label>
-    <input type="number" id="uPrice" step="0.01" placeholder="Enter sale price">
+    <label>Sale Price (Per Unit in your currency):</label>
+    <input type="number" id="uPrice" step="0.0001" placeholder="Enter sale price">
 
     <button onclick="calculate()">Calculate My 15% Share</button>
+    <div id="loading" class="loading">Fetching live exchange rates...</div>
 
     <div id="resBox">
         <span style="font-size: 14px; color: #666;">Total Estimated Commission (15%):</span>
@@ -68,40 +70,50 @@
 
 <script>
     async function calculate() {
-        let id = document.getElementById('uId').value;
-        let selectedCurr = document.getElementById('curr').value;
-        let qty = parseInt(document.getElementById('uQty').value);
-        let salePrice = parseFloat(document.getElementById('uPrice').value);
-        
-        // অ্যাডমিনের সেট করা বিডিটি খরচ কল করা
-        let secretCostBDT = localStorage.getItem("cost_" + id);
+        const id = document.getElementById('uId').value;
+        const selectedCurr = document.getElementById('curr').value;
+        const qty = parseInt(document.getElementById('uQty').value);
+        const salePrice = parseFloat(document.getElementById('uPrice').value);
+        const loading = document.getElementById('loading');
+        const resBox = document.getElementById('resBox');
 
-        if(!secretCostBDT || isNaN(qty) || isNaN(salePrice)) {
-            alert("Order ID not found or invalid input! Make sure Admin has set the cost for this ID."); return;
+        // অ্যাডমিনের ডাটা চেক করা (এটি এখন অবজেক্ট আকারে আছে)
+        const storedCost = localStorage.getItem("cost_" + id);
+
+        if(!storedCost || isNaN(qty) || isNaN(salePrice)) {
+            alert("Order ID not found or invalid input! Please check with Admin.");
+            return;
         }
 
+        const costData = JSON.parse(storedCost); // {amount: 5, currency: 'USD'}
+
         try {
-            // লাইভ কারেন্সি রেট ফেচ করা (বেস কারেন্সি BDT)
-            let res = await fetch(`https://api.exchangerate-api.com/v4/latest/BDT`);
-            let rates = await res.json();
-            let rate = rates.rates[selectedCurr];
+            loading.style.display = 'block';
+            resBox.style.display = 'none';
 
-            // ১. বিডিটি খরচকে ইউজারের কারেন্সিতে কনভার্ট করা
-            let costInUserCurr = parseFloat(secretCostBDT) * rate;
-            
-            // ২. নিট প্রফিট বের করা (ইউজারের কারেন্সিতে)
-            let profit = (salePrice - costInUserCurr) * qty;
-            
-            // ৩. প্রফিটের ওপর ১৫% অংশ বের করা
-            let share = profit * 0.15;
-            
-            // ৪. ফলাফল প্রদর্শন (কারেন্সি সিম্বল সহ)
-            let finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            // লাইভ এক্সচেঞ্জ রেট আনা (অ্যাডমিনের সেট করা কারেন্সি থেকে)
+            const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${costData.currency}`);
+            const data = await res.json();
+            const rate = data.rates[selectedCurr];
 
-            document.getElementById('resBox').style.display = 'block';
+            // ১. অ্যাডমিনের খরচকে পার্টনারের কারেন্সিতে কনভার্ট করা
+            const costInUserCurr = costData.amount * rate;
+            
+            // ২. প্রফিট হিসাব করা
+            const profitPerUnit = salePrice - costInUserCurr;
+            const totalProfit = profitPerUnit * qty;
+            
+            // ৩. ১৫% শেয়ার বের করা
+            const share = totalProfit * 0.15;
+            
+            // ৪. ফলাফল দেখানো
+            const finalShare = selectedCurr + " " + share.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            loading.style.display = 'none';
+            resBox.style.display = 'block';
             document.getElementById('finalAmount').innerText = finalShare;
 
-            // অ্যাডমিনের দেখার জন্য লগ সেভ করা
+            // অ্যাডমিনের প্যানেলে লগ পাঠানো
             let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
             log.push({
                 id: id,
@@ -112,9 +124,10 @@
                 time: new Date().toLocaleString()
             });
             localStorage.setItem("activityLog", JSON.stringify(log));
-            
-        } catch(e) { 
-            alert("Live currency rates failed. Please check your internet connection."); 
+
+        } catch (error) {
+            loading.style.display = 'none';
+            alert("Error: Could not fetch exchange rates. Check your connection.");
         }
     }
 </script>
