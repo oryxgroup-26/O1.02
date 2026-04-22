@@ -72,46 +72,35 @@
         </div>
     </div>
 
-    <script>
-        // খরচ সেভ করার ফাংশন
-        function saveCost() {
-            let id = document.getElementById('orderId').value;
-            let amount = document.getElementById('costAmount').value;
-            let curr = document.getElementById('adminCostCurr').value;
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-            if(id && amount) {
-                let costData = {
-                    amount: parseFloat(amount),
-                    currency: curr
-                };
-                // "cost_ID" কি-তে অবজেক্ট আকারে ডাটা সেভ হবে
-                localStorage.setItem("cost_" + id, JSON.stringify(costData));
-                alert("Cost saved: " + amount + " " + curr + " for ID: " + id);
-            } else {
-                alert("Please fill all fields.");
-            }
+<script>
+    // আপনার দেওয়া লিঙ্কটি এখানে সেট করা হয়েছে
+    const firebaseConfig = {
+        databaseURL: "https://oryx-partner-database-default-rtdb.firebaseio.com/" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    function saveCost() {
+        const id = document.getElementById('orderId').value;
+        const amount = document.getElementById('costAmount').value;
+        const curr = document.getElementById('adminCostCurr').value;
+
+        if(id && amount) {
+            // ডাটা সরাসরি ক্লাউডে সেভ হবে
+            database.ref('costs/' + id).set({
+                amount: parseFloat(amount),
+                currency: curr
+            }).then(() => {
+                alert("সাফল্যের সাথে ক্লাউড ডেটাবেসে সেভ হয়েছে!");
+                document.getElementById('orderId').value = "";
+                document.getElementById('costAmount').value = "";
+            }).catch(err => alert("Error: " + err.message));
+        } else {
+            alert("সবগুলো ঘর পূরণ করুন।");
         }
-
-        // লজিক: ইউজার প্যানেল এখন এই কারেন্সি ডাটা ব্যবহার করে হিসাব করবে
-        function loadActivity() {
-            let tbody = document.querySelector("#activityTable tbody");
-            tbody.innerHTML = "";
-            let log = JSON.parse(localStorage.getItem("activityLog") || "[]");
-            
-            log.reverse().forEach(entry => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="time-text">${entry.time || 'N/A'}</td>
-                        <td><b>${entry.id}</b></td>
-                        <td><span class="cost-badge">${entry.currency}</span></td>
-                        <td>${entry.qty}</td>
-                        <td>${entry.price}</td>
-                        <td style="color:#4caf50; font-weight:bold;">${entry.share}</td>
-                    </tr>`;
-            });
-        }
-
-        window.onload = loadActivity;
-    </script>
+</script>
 </body>
 </html>
